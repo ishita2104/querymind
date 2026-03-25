@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QueryMind — Ask your database anything</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --accent: #7c6aff;
+    --accent2: #a78bff;
+    --accent-glow: rgba(124,106,255,0.18);
+    --green: #3dffa0;
+    --green-dim: rgba(61,255,160,0.12);
+    --text: #e8e6f0;
+    --text2: #8b89a0;
+    --text3: #4a4860;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Syne', sans-serif;
+    --radius: 14px;
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,106,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,106,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Header */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+    background: rgba(10,10,15,0.8);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  .logo-text {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  .logo-text span { color: var(--accent2); }
+
+  .header-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--green);
+    background: var(--green-dim);
+    font-family: var(--mono);
+  }
+
+  .header-badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Main layout */
+  main {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: 860px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* Welcome screen */
+  .welcome {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 0 40px;
+    text-align: center;
+    gap: 24px;
+  }
+
+  .welcome-icon {
+    width: 72px;
+    height: 72px;
+    background: var(--accent-glow);
+    border: 1px solid rgba(124,106,255,0.3);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  .welcome h1 {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.15;
+  }
+
+  .welcome h1 span {
+    background: linear-gradient(135deg, var(--accent2), var(--green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .welcome p {
+    font-size: 15px;
+    color: var(--text2);
+    max-width: 420px;
+    line-height: 1.7;
+    font-weight: 400;
+  }
+
+  .suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    max-width: 560px;
+  }
+
+  .suggestion-chip {
+    padding: 8px 16px;
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    font-size: 13px;
+    color: var(--text2);
+    cursor: pointer;
+    background: var(--surface);
+    transition: all 0.2s;
+    font-family: var(--sans);
+    font-weight: 500;
+  }
+
+  .suggestion-chip:hover {
+    border-color: var(--accent);
+    color: var(--accent2);
+    background: var(--accent-glow);
+    transform: translateY(-1px);
+  }
+
+  /* Chat messages */
+  .chat-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 0 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    display: none;
+  }
+
+  .chat-area::-webkit-scrollbar { width: 4px; }
+  .chat-area::-webkit-scrollbar-track { background: transparent; }
+  .chat-area::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .msg-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    animation: msgIn 0.3s ease;
+  }
+
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg-row.user { flex-direction: row-reverse; }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    font-weight: 700;
+  }
+
+  .avatar.user-av {
+    background: linear-gradient(135deg, var(--accent), #5b4de8);
+    color: white;
+    font-size: 13px;
+  }
+
+  .avatar.bot-av {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    font-size: 16px;
+  }
+
+  .bubble {
+    max-width: 72%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .msg-row.user .bubble { align-items: flex-end; }
+
+  .bubble-text {
+    padding: 12px 16px;
+    border-radius: 14px;
+    font-size: 14px;
+    line-height: 1.65;
+    font-weight: 400;
+  }
+
+  .user .bubble-text {
+    background: var(--accent);
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+
+  .bot .bubble-text {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-bottom-left-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  /* SQL block */
+  .sql-block {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    overflow: hidden;
+    width: 100%;
+  }
+
+  .sql-header {
+    padding: 7px 12px;
+    background: rgba(124,106,255,0.1);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .sql-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent2);
+    font-family: var(--mono);
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+
+  .copy-btn {
+    font-size: 11px;
+    color: var(--text3);
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: var(--mono);
+    transition: color 0.2s;
+  }
+
+  .copy-btn:hover { color: var(--text2); }
+
+  .sql-code {
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--green);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  /* Results table */
+  .results-wrap {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .results-header {
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .results-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text2);
+    font-family: var(--mono);
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+
+  .results-count {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: var(--mono);
+  }
+
+  .table-wrap { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    font-family: var(--mono);
+  }
+
+  th {
+    padding: 7px 12px;
+    text-align: left;
+    font-weight: 500;
+    color: var(--text3);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    font-size: 11px;
+  }
+
+  td {
+    padding: 7px 12px;
+    color: var(--text2);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* Typing indicator */
+  .typing-bubble {
+    padding: 14px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    border-bottom-left-radius: 4px;
+    display: flex;
+    gap: 5px;
+    align-items: center;
+  }
+
+  .typing-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text3);
+    animation: typingDot 1.4s infinite;
+  }
+
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes typingDot {
+    0%, 80%, 100% { transform: scale(1); opacity: 0.4; }
+    40% { transform: scale(1.2); opacity: 1; }
+  }
+
+  /* Input area */
+  .input-area {
+    position: relative;
+    z-index: 10;
+    padding: 20px 0 28px;
+    border-top: 1px solid var(--border);
+    background: linear-gradient(to top, var(--bg) 60%, transparent);
+  }
+
+  .input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 14px;
+    padding: 10px 10px 10px 18px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .input-wrap:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  #question-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-weight: 400;
+    line-height: 1.5;
+  }
+
+  #question-input::placeholder { color: var(--text3); }
+
+  .send-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    font-size: 16px;
+  }
+
+  .send-btn:hover { background: var(--accent2); transform: scale(1.05); }
+  .send-btn:active { transform: scale(0.97); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .input-hint {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text3);
+    margin-top: 10px;
+    font-family: var(--mono);
+  }
+
+  /* Error state */
+  .error-text {
+    color: #ff6b6b;
+    font-size: 13px;
+    padding: 10px 14px;
+    background: rgba(255,107,107,0.08);
+    border: 1px solid rgba(255,107,107,0.2);
+    border-radius: 10px;
+  }
+
+  /* Config banner */
+  .config-banner {
+    background: rgba(255,180,0,0.08);
+    border: 1px solid rgba(255,180,0,0.2);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #ffc947;
+    margin: 16px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    <div class="logo-text">Query<span>Mind</span></div>
+  </div>
+  <div class="header-badge">Connected to RDS</div>
+</header>
+
+<main>
+  <!-- Welcome screen -->
+  <div class="welcome" id="welcome">
+    <div class="welcome-icon">🧠</div>
+    <h1>Ask your database<br><span>anything you want</span></h1>
+    <p>Type a question in plain English. QueryMind will write the SQL, run it, and explain the results — no SQL knowledge needed.</p>
+    <div class="suggestions">
+      <div class="suggestion-chip" onclick="ask('How many orders were placed today?')">How many orders today?</div>
+      <div class="suggestion-chip" onclick="ask('What are the top 5 products by revenue?')">Top products by revenue</div>
+      <div class="suggestion-chip" onclick="ask('Which customer spent the most money?')">Top spending customer</div>
+      <div class="suggestion-chip" onclick="ask('Show me all orders from the last 2 days')">Recent orders</div>
+      <div class="suggestion-chip" onclick="ask('How many products do we have in stock?')">Total stock count</div>
+      <div class="suggestion-chip" onclick="ask('What is the total revenue this month?')">Monthly revenue</div>
+    </div>
+  </div>
+
+  <!-- Chat area -->
+  <div class="chat-area" id="chat-area"></div>
+
+  <!-- Input -->
+  <div class="input-area">
+    <div class="input-wrap">
+      <input
+        type="text"
+        id="question-input"
+        placeholder="Ask anything about your data..."
+        onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); sendQuestion(); }"
+        autocomplete="off"
+      />
+      <button class="send-btn" id="send-btn" onclick="sendQuestion()">↑</button>
+    </div>
+    <div class="input-hint">Press Enter to send &nbsp;·&nbsp; Powered by Groq + AWS Lambda + RDS</div>
+  </div>
+</main>
+
+<script>
+  // ====================================================
+  // PASTE YOUR API GATEWAY URL HERE
+  // ====================================================
+  const API_URL = 'https://crj969xdd3.execute-api.ap-south-1.amazonaws.com/dev/query';
+  // ====================================================
+
+  const chatArea = document.getElementById('chat-area');
+  const welcome = document.getElementById('welcome');
+  const input = document.getElementById('question-input');
+  const sendBtn = document.getElementById('send-btn');
+  let chatStarted = false;
+
+  function ask(q) {
+    input.value = q;
+    sendQuestion();
+  }
+
+  function startChat() {
+    if (!chatStarted) {
+      chatStarted = true;
+      welcome.style.display = 'none';
+      chatArea.style.display = 'flex';
+    }
+  }
+
+  function addMessage(type, content) {
+    const row = document.createElement('div');
+    row.className = `msg-row ${type}`;
+
+    const av = document.createElement('div');
+    av.className = `avatar ${type === 'user' ? 'user-av' : 'bot-av'}`;
+    av.textContent = type === 'user' ? 'You' : '⚡';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+
+    if (type === 'user') {
+      const text = document.createElement('div');
+      text.className = 'bubble-text';
+      text.textContent = content;
+      bubble.appendChild(text);
+    } else if (type === 'typing') {
+      const typing = document.createElement('div');
+      typing.className = 'typing-bubble';
+      typing.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+      bubble.appendChild(typing);
+    } else if (type === 'bot') {
+      // Answer text
+      const text = document.createElement('div');
+      text.className = 'bubble-text';
+      text.textContent = content.answer;
+      bubble.appendChild(text);
+
+      // SQL block
+      if (content.sql) {
+        const sqlBlock = document.createElement('div');
+        sqlBlock.className = 'sql-block';
+        sqlBlock.innerHTML = `
+          <div class="sql-header">
+            <span class="sql-label">Generated SQL</span>
+            <button class="copy-btn" onclick="copySQL(this, \`${content.sql.replace(/`/g,'\\`')}\`)">copy</button>
+          </div>
+          <div class="sql-code">${escHtml(content.sql)}</div>
+        `;
+        bubble.appendChild(sqlBlock);
+      }
+
+      // Results table
+      if (content.results && content.results.length > 0) {
+        const cols = Object.keys(content.results[0]);
+        const tableWrap = document.createElement('div');
+        tableWrap.className = 'results-wrap';
+        let tableHtml = `
+          <div class="results-header">
+            <span class="results-label">Results</span>
+            <span class="results-count">${content.results.length} row${content.results.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div class="table-wrap">
+            <table><thead><tr>
+              ${cols.map(c => `<th>${escHtml(c)}</th>`).join('')}
+            </tr></thead><tbody>
+              ${content.results.map(row =>
+                `<tr>${cols.map(c => `<td title="${escHtml(String(row[c] ?? ''))}">${escHtml(String(row[c] ?? ''))}</td>`).join('')}</tr>`
+              ).join('')}
+            </tbody></table>
+          </div>`;
+        tableWrap.innerHTML = tableHtml;
+        bubble.appendChild(tableWrap);
+      }
+    } else if (type === 'error') {
+      const err = document.createElement('div');
+      err.className = 'error-text';
+      err.textContent = '⚠ ' + content;
+      bubble.appendChild(err);
+    }
+
+    row.appendChild(av);
+    row.appendChild(bubble);
+    chatArea.appendChild(row);
+    chatArea.scrollTop = chatArea.scrollHeight;
+    return row;
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function copySQL(btn, sql) {
+    navigator.clipboard.writeText(sql).then(() => {
+      btn.textContent = 'copied!';
+      setTimeout(() => btn.textContent = 'copy', 2000);
+    });
+  }
+
+  async function sendQuestion() {
+    const q = input.value.trim();
+    if (!q) return;
+
+    startChat();
+    input.value = '';
+    sendBtn.disabled = true;
+
+    addMessage('user', q);
+
+    const typingRow = addMessage('typing', '');
+
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q })
+      });
+
+      const raw = await res.json();
+      const data = typeof raw.body === 'string' ? JSON.parse(raw.body) : raw.body;
+
+      chatArea.removeChild(typingRow);
+
+      if (data.error) {
+        addMessage('error', data.error);
+      } else {
+        addMessage('bot', {
+          answer: data.answer || 'Done.',
+          sql: data.sql,
+          results: data.results || []
+        });
+      }
+    } catch (err) {
+      chatArea.removeChild(typingRow);
+      addMessage('error', 'Could not reach the API. Check your internet connection or API URL.');
+    }
+
+    sendBtn.disabled = false;
+    input.focus();
+    chatArea.scrollTop = chatArea.scrollHeight;
+  }
+</script>
+</body>
+</html>
