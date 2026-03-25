@@ -6,6 +6,9 @@ Ask your database anything in plain English. QueryMind automatically writes the 
 🔗 **Live Demo:** [your-username.github.io/querymind](https://your-username.github.io/querymind)
 
 ---
+## Preview
+
+![QueryMind UI](preview.png)
 
 ## What it does
 
